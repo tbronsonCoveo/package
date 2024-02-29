@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  workflow_dispatch: { }
+
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  create-package:
+    name: Create and deploy package
+
+    runs-on: [ coveo, linux, x64, ec2 ]
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with:
+          # We pull the whole history because `deployment-package package create` looks through the whole git history.
+          fetch-depth: 0
+          ref: 'feature/test'
+
+      # Configure the Pipeline CL
+      - uses: coveo-platform/deployment-pipeline-actions/setup-cli@main
+
+      - uses: coveo-platform/deployment-pipeline-actions/create-package@main
+        id: create-package
+
+      - name: Deploy
+        env:
+          PACKAGE_NAME: ${{ steps.create-package.outputs.package-name }}
+        run: deployment-package package deploy --package-name "$PACKAGE_NAME"
